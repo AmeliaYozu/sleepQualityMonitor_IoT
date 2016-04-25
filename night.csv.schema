@@ -1,0 +1,31 @@
+{
+    "version": "1.0",
+    "rowId": null,
+    "targetAttributeName": "Q",
+    "dataFormat": "CSV",
+    "dataFileContainsHeader": false,
+    "attributes": [
+        {
+            "attributeName": "timestamp",
+            "attributeType": "NUMERIC"
+        },
+        {
+            "attributeName": "temp",
+            "attributeType": "NUMERIC"
+        },
+        {
+            "attributeName": "light",
+            "attributeType": "NUMERIC"
+        },
+        {
+            "attributeName": "sound",
+            "attributeType": "NUMERIC"
+        },
+        {
+            "attributeName": "Q",
+            "attributeType": "BINARY"
+
+        }
+        
+    ]
+}
