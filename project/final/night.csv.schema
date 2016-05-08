@@ -1,0 +1,31 @@
+{
+    "version": "1.0",
+    "rowId": null,
+    "targetAttributeName": "state",
+    "dataFormat": "CSV",
+    "dataFileContainsHeader": true,
+    "attributes": [
+        {
+            "attributeName": "temp",
+            "attributeType": "NUMERIC"
+        },
+        {
+            "attributeName": "light",
+            "attributeType": "NUMERIC"
+        },
+        {
+            "attributeName": "sound",
+            "attributeType": "NUMERIC"
+        },
+        {
+            "attributeName": "time",
+            "attributeType": "NUMERIC"
+        },
+        {
+            "attributeName": "state",
+            "attributeType": "BINARY"
+
+        }
+        
+    ]
+}
