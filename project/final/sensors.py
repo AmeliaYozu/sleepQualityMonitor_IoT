@@ -222,92 +222,94 @@ def get_D(que):
     return "sleep"
 
 if __name__ == "__main__":
-  que = deque(7*[None],7)
-  dw = None
-  #init file inputs 
-  
-  init_flag = False
-  if not (os.path.exists("./night.csv")):
-    print "Create csv record file..."
-    init_flag = True
-  with open('night.csv', 'a') as fou:
-    fieldnames = ['temp','light', 'sound',"time","state"]
-    dw = csv.DictWriter(fou,fieldnames=fieldnames)
-    if init_flag:
-      dw.writeheader()
-
-  # get signal value from sensors 
-  lightSensor = mraa.Aio(0)
-  tempSensor = mraa.Aio(1)
-  soundSensor = mraa.Aio(2)
-
-  #initiate assistant values
-  count = 0
-  tem_sum = 0
-  light_sum = 0
-  sound_sum = 0
-
-  #parameters for derive sleep Q using sound signals
-  frq = 16000#HZ
-  smp_rate = 1.0/frq#float
-  SMP_PER_FRAME = 10
-  FRAME_PER_MIN = 600
-
-  print smp_rate
-  sleep_states = []
-  countcycle = 0
   try:
-    while(1):
-      countcycle+=1
-      #cur_pars=[]
+    que = deque(7*[None],7)
+    dw = None
+    #init file inputs 
+    
+    init_flag = False
+    if not (os.path.exists("./night.csv")):
+      print "Create csv record file..."
+      init_flag = True
+    with open('night.csv', 'a') as fou:
+      fieldnames = ['temp','light', 'sound',"time","state"]
+      dw = csv.DictWriter(fou,fieldnames=fieldnames)
+      if init_flag:
+        dw.writeheader()
 
-      #collect the temperature data and make temperature readable
-      a=tempSensor.read()
-      R=1023.0/a-1.0
-      R=100000.0*R
-      temperature=Decimal(1.0/(math.log(R/100000.0)/4275+1/298.15)-273.15)
-      temperature2=str(round(temperature,2))
-      #cur_pars.append(float(temperature2))
-      #collect the light data
-      light = lightSensor.read()
-      #cur_pars.append(light)
-      #collect the sound data
-      sound =  soundSensor.read()
-      #cur_pars.append(sound)
+    # get signal value from sensors 
+      lightSensor = mraa.Aio(0)
+      tempSensor = mraa.Aio(1)
+      soundSensor = mraa.Aio(2)
 
-      #compute sleep state in 3 mins (sleep/wake)
-      t_start_tmp = time.time()
-      raw_frame = []
-      timestamp = int((t_start_tmp-t_midnight))#int((tt-t_midnight)/60)
-      #cur_pars.append(timestamp)
-      print "______________________________________"
-      print "Collecting signals in 1 mins..."
-      while(time.time()-t_start_tmp<60):
-        
-        raw_signal = []
-        while(len(raw_signal)<500):
-          raw_signal.append(soundSensor.read())
-        raw_frame.append(raw_signal)
+      #initiate assistant values
+      count = 0
+      tem_sum = 0
+      light_sum = 0
+      sound_sum = 0
 
-      #got 1 cycle data raw_frame[], then computing Q
-      print "--------------------------------------"
-      print "Total Frames #: ",len(raw_frame)
+      #parameters for derive sleep Q using sound signals
+      frq = 16000#HZ
+      smp_rate = 1.0/frq#float
+      SMP_PER_FRAME = 10
+      FRAME_PER_MIN = 600
 
-      print "Analysis frames..."
-      ec=compute_sound_feature(raw_frame,W_SIZE)
-      #cur_pars.append(ec)
-      que.appendleft(ec)
-      if countcycle<=2:
-        print "Initial value %d ready to use" % (countcycle)
-        continue
-      print "Compute state for the current minute..."
-      state_value = get_D(que)
-      print "State: ",state_value
-      #print ec
-      #sleep_states.append(cur_pars)
-      current_night = {"temp":temperature2,"light":light,"sound":sound,"time":timestamp,"state":state_value}  
-      print "write current data into night.csv."
-      dw.writerow(current_night)
+      print smp_rate
+      sleep_states = []
+      countcycle = 0
+  
+      while(1):
+        countcycle+=1
+        #cur_pars=[]
+
+        #collect the temperature data and make temperature readable
+        a=tempSensor.read()
+        R=1023.0/a-1.0
+        R=100000.0*R
+        temperature=Decimal(1.0/(math.log(R/100000.0)/4275+1/298.15)-273.15)
+        temperature2=str(round(temperature,2))
+        #cur_pars.append(float(temperature2))
+        #collect the light data
+        light = lightSensor.read()
+        #cur_pars.append(light)
+        #collect the sound data
+        sound =  soundSensor.read()
+        #cur_pars.append(sound)
+
+        #compute sleep state in 3 mins (sleep/wake)
+        t_start_tmp = time.time()
+        raw_frame = []
+        timestamp = int((t_start_tmp-t_midnight))#int((tt-t_midnight)/60)
+        #cur_pars.append(timestamp)
+        print "______________________________________"
+        print "Collecting signals in 1 mins..."
+        print "Cycle: ", countcycle
+        while(time.time()-t_start_tmp<60):
+          
+          raw_signal = []
+          while(len(raw_signal)<500):
+            raw_signal.append(soundSensor.read())
+          raw_frame.append(raw_signal)
+
+        #got 1 cycle data raw_frame[], then computing Q
+        print "--------------------------------------"
+        print "Total Frames #: ",len(raw_frame)
+
+        print "Analysis frames..."
+        ec=compute_sound_feature(raw_frame,W_SIZE)
+        #cur_pars.append(ec)
+        que.appendleft(ec)
+        if countcycle<=2:
+          print "Initial value %d ready to use" % (countcycle)
+          continue
+        print "Compute state for the current minute..."
+        state_value = get_D(que)
+        print "State: ",state_value
+        #print ec
+        #sleep_states.append(cur_pars)
+        current_night = {"temp":temperature2,"light":light,"sound":sound,"time":timestamp,"state":state_value}  
+        print "write current data into night.csv."
+        dw.writerow(current_night)
 
   except KeyboardInterrupt:
     print "Exceptions!"
