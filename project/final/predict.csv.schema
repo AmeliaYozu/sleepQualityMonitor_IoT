@@ -5,10 +5,6 @@
     "dataFileContainsHeader": false,
     "attributes": [
         {
-            "attributeName": "timestamp",
-            "attributeType": "NUMERIC"
-        },
-        {
             "attributeName": "temp",
             "attributeType": "NUMERIC"
         },

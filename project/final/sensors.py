@@ -7,6 +7,7 @@ import datetime
 import numpy as np
 import functools
 from numpy import mean, sqrt, square, arange, var, std
+from collections import deque
 
 import os.path
 import csv
@@ -19,10 +20,7 @@ from boto.dynamodb2.items import Item
 
 from decimal import Decimal
 
-
 switch_pin_number=8
-
-
 
 ACCOUNT_ID = '758957437187'
 IDENTITY_POOL_ID = 'us-east-1:57e76a23-719b-4e4e-b063-494ddb08f7e5'
@@ -66,6 +64,7 @@ t_midnight = "%s 00:00:00" %(today)
 t_midnight = datetime.datetime.strptime(t_midnight, "%Y-%m-%d %H:%M:%S").timetuple()
 t_midnight = time.mktime(t_midnight)
 W_SIZE = 40#default window size for determine noise model
+
 
 res = None
 def put_in_raw_table(timestamp,temp,light,sound):
@@ -149,8 +148,9 @@ def compute_sound_feature(frames,w):
       w_tmp_list = []
     w_std_list.append(std_frames[i])
     w_tmp_list.append([rms,rlh,var])
-  print len(n_frames)
-  print len(e_frames)
+  print "Result:"
+  print "Noise Frames #: ",len(n_frames)
+  print "Event Frames #: ",len(e_frames)
   #exit(0)
   norm = get_norm_ref(n_frames)
 
@@ -176,6 +176,10 @@ def event_function(sublist,norm):
   rlh_bar = float(e_rlh-norm['mean_rlh'])/norm['std_rlh']
   var_bar = float(e_var-norm['mean_var'])/norm['std_var']
   return [rms_bar,rlh_bar,var_bar]
+'''
++++++++++++++++++++++++++++++
+How to compute state is not putting ecs in a list
++++++++++++++++++++++++++++++
 
 def label_states(states):
   try:
@@ -205,88 +209,106 @@ def label_states(states):
     return states
   except IndexError:
     print "Too short duration to get result!"
-
-def get_D(a_4,a_3,a_2,a_1,a0,a1,a2):
-  D = 0.125*(0.15*a_4+0.15*a_3+0.15*a_2+0.08*a_1+0.21*a0+0.12*a1+0.13*a2)
+'''
+def get_D(que):
+  val=[0,0,0,0,0,0,0]
+  for i in range(0,len(que)):
+    if que[i] != None:
+      val[i] = que[i]
+  D = 0.125*(0.15*val[0]+0.15*val[1]+0.15*val[2]+0.08*val[3]+0.21*val[4]+0.12*val[5]+0.13*val[6])#val[4] cur
   if D>1:
     return "wake"
   else:
     return "sleep"
 
-
-# get signal value from sensors 
-lightSensor = mraa.Aio(0)
-tempSensor = mraa.Aio(1)
-soundSensor = mraa.Aio(2)
-
-#initiate assistant values
-count = 0
-tem_sum = 0
-light_sum = 0
-sound_sum = 0
-
-#parameters for derive sleep Q using sound signals
-frq = 16000#HZ
-smp_rate = 1.0/frq#float
-SMP_PER_FRAME = 10
-FRAME_PER_MIN = 600
-
-print smp_rate
-sleep_states = []
-try:
-  while(1):
-    cur_pars=[]
-
-    #collect the temperature data and make temperature readable
-    a=tempSensor.read()
-    R=1023.0/a-1.0
-    R=100000.0*R
-    temperature=Decimal(1.0/(math.log(R/100000.0)/4275+1/298.15)-273.15)
-    temperature2=str(round(temperature,2))
-    cur_pars.append(float(temperature2))
-    #collect the light data
-    light = lightSensor.read()
-    cur_pars.append(light)
-    #collect the sound data
-    sound =  soundSensor.read()
-    cur_pars.append(sound)
-
-    #compute sleep state in 3 mins (sleep/wake)
-    t_start_tmp = time.time()
-    raw_frame = []
-    timestamp = int((t_start_tmp-t_midnight))#int((tt-t_midnight)/60)
-    cur_pars.append(timestamp)
-
-    while(time.time()-t_start_tmp<60):
-      
-      raw_signal = []
-      while(len(raw_signal)<500):
-        raw_signal.append(soundSensor.read())
-      raw_frame.append(raw_signal)
-
-    #got 1 cycle data raw_frame[], then computing Q
-
-    print len(raw_frame)
-
-    ec=compute_sound_feature(raw_frame,W_SIZE)
-    cur_pars.append(ec)
-    print ec
-    sleep_states.append(cur_pars)
-
-except KeyboardInterrupt or Exception:
-  res = label_states(sleep_states)
-  print "Writing into csv..."
+if __name__ == "__main__":
+  que = deque(7*[None],7)
+  dw = None
+  #init file inputs 
+  
   init_flag = False
   if not (os.path.exists("./night.csv")):
+    print "Create csv record file..."
     init_flag = True
   with open('night.csv', 'a') as fou:
-    fieldnames = ['temp','light', 'sound',"time","events","state"]
+    fieldnames = ['temp','light', 'sound',"time","state"]
     dw = csv.DictWriter(fou,fieldnames=fieldnames)
     if init_flag:
       dw.writeheader()
-    for _ in res:
-      print _
-      current_night = {"temp":str(_[0]),"light":str(_[1]),"sound":str(_[2]),"time":str(_[3]),"events":str(_[4]),"state":str(_[5])}  
+
+  # get signal value from sensors 
+  lightSensor = mraa.Aio(0)
+  tempSensor = mraa.Aio(1)
+  soundSensor = mraa.Aio(2)
+
+  #initiate assistant values
+  count = 0
+  tem_sum = 0
+  light_sum = 0
+  sound_sum = 0
+
+  #parameters for derive sleep Q using sound signals
+  frq = 16000#HZ
+  smp_rate = 1.0/frq#float
+  SMP_PER_FRAME = 10
+  FRAME_PER_MIN = 600
+
+  print smp_rate
+  sleep_states = []
+  countcycle = 0
+  try:
+    while(1):
+      countcycle+=1
+      #cur_pars=[]
+
+      #collect the temperature data and make temperature readable
+      a=tempSensor.read()
+      R=1023.0/a-1.0
+      R=100000.0*R
+      temperature=Decimal(1.0/(math.log(R/100000.0)/4275+1/298.15)-273.15)
+      temperature2=str(round(temperature,2))
+      #cur_pars.append(float(temperature2))
+      #collect the light data
+      light = lightSensor.read()
+      #cur_pars.append(light)
+      #collect the sound data
+      sound =  soundSensor.read()
+      #cur_pars.append(sound)
+
+      #compute sleep state in 3 mins (sleep/wake)
+      t_start_tmp = time.time()
+      raw_frame = []
+      timestamp = int((t_start_tmp-t_midnight))#int((tt-t_midnight)/60)
+      #cur_pars.append(timestamp)
+      print "______________________________________"
+      print "Collecting signals in 1 mins..."
+      while(time.time()-t_start_tmp<60):
+        
+        raw_signal = []
+        while(len(raw_signal)<500):
+          raw_signal.append(soundSensor.read())
+        raw_frame.append(raw_signal)
+
+      #got 1 cycle data raw_frame[], then computing Q
+      print "--------------------------------------"
+      print "Total Frames #: ",len(raw_frame)
+
+      print "Analysis frames..."
+      ec=compute_sound_feature(raw_frame,W_SIZE)
+      #cur_pars.append(ec)
+      que.appendleft(ec)
+      if countcycle<=2:
+        print "Initial value %d ready to use" % (countcycle)
+        continue
+      print "Compute state for the current minute..."
+      state_value = get_D(que)
+      print "State: ",state_value
+      #print ec
+      #sleep_states.append(cur_pars)
+      current_night = {"temp":temperature2,"light":light,"sound":sound,"time":timestamp,"state":state_value}  
+      print "write current data into night.csv."
       dw.writerow(current_night)
 
-  print "Done."
+  except KeyboardInterrupt:
+    print "Exceptions!"
+    exit(0)

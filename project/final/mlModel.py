@@ -134,4 +134,4 @@ if __name__ == "__main__":
         raise
     model_id = build_model(data_s3_url, schema_fn, name=name)
     print("""\nFor the next step in the demo, run:
-    python use_model.py %s 0.77 s3://your-bucket/predict_output/""" % model_id)
+    python use_model.py %s 0.77 s3://finalmon8/predict_output/""" % model_id)
