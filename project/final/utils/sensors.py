@@ -8,7 +8,7 @@ import numpy as np
 import functools
 from numpy import mean, sqrt, square, arange, var, std
 from collections import deque
-
+import os, signal
 import os.path
 import csv
 
@@ -19,6 +19,15 @@ from boto.dynamodb2.types import NUMBER
 from boto.dynamodb2.items import Item
 
 from decimal import Decimal
+
+class GracefulKiller:
+  kill_now = False
+  def __init__(self):
+    signal.signal(signal.SIGINT, self.exit_gracefully)
+    signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+  def exit_gracefully(self,signum, frame):
+    self.kill_now = True
 
 switch_pin_number=8
 
@@ -170,7 +179,10 @@ def get_D(que):
   else:
     return "sleep"
 
+#  def main_func():
 if __name__ == "__main__":
+  killer = GracefulKiller()
+
   try:
     que = deque(7*[None],7)
     dw = None
@@ -206,8 +218,12 @@ if __name__ == "__main__":
       print smp_rate
       sleep_states = []
       countcycle = 0
-  
+      
+      break_out_flag = False
+      break_out_out_flag = False
       while(1):
+        if break_out_flag or killer.kill_now:
+          break
         countcycle+=1
         #cur_pars=[]
 
@@ -234,9 +250,14 @@ if __name__ == "__main__":
         print "Collecting signals in 1 mins..."
         print "Cycle: ", countcycle
         while(time.time()-t_start_tmp<60):
-          
+          if killer.kill_now or break_out_out_flag:
+            break_out_flag =True
+            break
           raw_signal = []
           while(len(raw_signal)<500):
+            if killer.kill_now:
+              break_out_out_flag =True
+              break
             raw_signal.append(soundSensor.read())
           raw_frame.append(raw_signal)
 
@@ -260,7 +281,13 @@ if __name__ == "__main__":
         print "write current data into night.csv."
         dw.writerow(current_night)
         fou.flush()
-
+      print "Exit Monitor Success." 
+      exit(0)
   except KeyboardInterrupt:
     print "Exceptions!"
     exit(0)
+
+def exit_print():
+  print "Exit Monitor Success..."
+import atexit
+atexit.register(exit_print)

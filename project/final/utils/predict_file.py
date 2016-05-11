@@ -1,5 +1,6 @@
 import mraa
 import math
+import subprocess
 import time
 import boto
 import boto.dynamodb2
@@ -46,10 +47,11 @@ sound =  soundSensor.read()
 t_start_tmp = time.time()
 timestamp = int((t_start_tmp-t_midnight))#int((tt-t_midnight)/60)
 
-with open('predict.csv', 'w') as fou:
+with open('../utils/predict.csv', 'w') as fou:
       fieldnames = ['temp','light', 'sound',"time"]
       dw = csv.DictWriter(fou,fieldnames=fieldnames)
       dw.writeheader()
       current_night = {"temp":temperature2,"light":light,"sound":sound,"time":timestamp}  
       print "write predict data into predict.csv."
       dw.writerow(current_night)
+subprocess.call(['python', '../utils/use_Model.py', 'ml-KPAV4GQINDIVBWOQ', '0.77', 's3://finalmon8/predict_output/'])

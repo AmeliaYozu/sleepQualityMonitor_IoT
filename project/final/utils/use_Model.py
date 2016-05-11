@@ -32,7 +32,7 @@ import urlparse
 
 # The URL of the sample data in S3
 UNSCORED_DATA_S3_URL = "s3://finalmon8/predict.csv"
-
+FINAL_NAME = None
 
 def use_model(model_id, threshold, schema_fn, output_s3, data_s3url):
     """Creates all the objects needed to build an ML Model & evaluate its quality.
@@ -44,6 +44,7 @@ def use_model(model_id, threshold, schema_fn, output_s3, data_s3url):
     print("Set score threshold for %s to %.2f" % (model_id, threshold))
 
     bp_id = 'bp-' + base64.b32encode(os.urandom(10))
+    FINAL_NAME = bp_id+"-predict.csv.gz"
     ds_id = create_data_source_for_scoring(ml, data_s3url, schema_fn)
     ml.create_batch_prediction(
         BatchPredictionId=bp_id,
@@ -85,7 +86,6 @@ def create_data_source_for_scoring(ml, data_s3url, schema_fn):
     print("Created Datasource %s for batch prediction" % ds_id)
     return ds_id
 
-
 if __name__ == "__main__":
     try:
         model_id = sys.argv[1]
@@ -94,11 +94,12 @@ if __name__ == "__main__":
         parsed_url = urlparse.urlparse(s3_output_url)
         if parsed_url.scheme != 's3':
             raise RuntimeError("s3_output_url must be an s3:// url")
+        
     except IndexError:
         print(__doc__)
         sys.exit(-1)
     except:
         print(__doc__)
         raise
-    use_model(model_id, threshold, "predict.csv.schema",
+    use_model(model_id, threshold, "../utils/predict.csv.schema",
               s3_output_url, UNSCORED_DATA_S3_URL)

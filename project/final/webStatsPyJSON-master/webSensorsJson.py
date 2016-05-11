@@ -15,6 +15,7 @@ import alcoholsensor
 from functools import wraps
 from flask import Flask, url_for, jsonify, redirect, request, current_app, send_from_directory
 import signal, psutil
+sys.path.append('../utils')
 
 app = Flask(__name__)
 
@@ -90,9 +91,8 @@ def start_monitor():
 	#global time_start = time.time()
 	newpid = os.fork()
 	if newpid == 0:
-		memJson = {"state":"Start monitoring..."}
-		subprocess.call(["python","../sensors.py"])
-		#exit(0)
+		#sensors.main_func()
+		subprocess.call(["python","../utils/sensors.py"])
 	else:	
 		memJson = {"state":"Start monitoring..."}
 	resp = jsonify(memJson)
@@ -103,7 +103,7 @@ def start_monitor():
 @app.route('/predict')
 @support_jsonp
 def predict():
-	subprocess.call(["python","../predict_file.py"])
+	subprocess.call(["python","../utils/predict_file.py"])
 	#subprocess.call("use_model command")
 	memJson = {"state":"Get predict data..."}
 	resp = jsonify(memJson)
@@ -117,6 +117,7 @@ def end_monitor():
 	parent = psutil.Process(os.getpid())
 	children = parent.children(recursive=True)
 	for process in children:
+		#os.kill(process.pid,signal.CTRL_C_EVENT)
  		process.send_signal(sig)
 	#global p = 5654
 	#os.kill(p, signal.SIGTERM)
@@ -133,4 +134,4 @@ def end_monitor():
 	return resp
 
 if __name__ == '__main__':
-	app.run(debug=True, host="0.0.0.0", port=9000)
+	app.run(debug=False, host="0.0.0.0", port=9900)
