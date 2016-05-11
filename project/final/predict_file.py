@@ -1,3 +1,29 @@
+import mraa
+import math
+import time
+import boto
+import boto.dynamodb2
+import datetime
+import numpy as np
+import functools
+from numpy import mean, sqrt, square, arange, var, std
+from collections import deque
+
+import os.path
+import csv
+
+from boto import kinesis
+from boto.dynamodb2.fields import HashKey, RangeKey, KeysOnlyIndex, GlobalAllIndex
+from boto.dynamodb2.table import Table
+from boto.dynamodb2.types import NUMBER
+from boto.dynamodb2.items import Item
+
+from decimal import Decimal
+
+switch_pin_number=8
+lightSensor = mraa.Aio(0)
+tempSensor = mraa.Aio(1)
+soundSensor = mraa.Aio(2)
 today = time.strftime("%Y-%m-%d")
 t_midnight = "%s 00:00:00" %(today)
 t_midnight = datetime.datetime.strptime(t_midnight, "%Y-%m-%d %H:%M:%S").timetuple()

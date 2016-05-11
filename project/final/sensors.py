@@ -42,31 +42,13 @@ client_dynamo = boto.dynamodb2.connect_to_region(
     aws_access_key_id=assumedRoleObject.credentials.access_key,
     aws_secret_access_key=assumedRoleObject.credentials.secret_key,
     security_token=assumedRoleObject.credentials.session_token)
-'''
-from boto.dynamodb2.table import Table
-table_dynamo = Table(DYNAMODB_TABLE_NAME, connection=client_dynamo)
 
-tables = client_dynamo.list_tables() 
-if DYNAMODB_TABLE_NAME not in tables['TableNames']:
-    print DYNAMODB_TABLE_NAME+' not found, creating table, wait 15s'
-    table = Table.create(DYNAMODB_TABLE_NAME, schema=[
-       HashKey('timestamp'),],connection=client_dynamo)
-    time.sleep(15)
-else:
-
-    table = Table(DYNAMODB_TABLE_NAME, schema=[
-       HashKey('timestamp'),
-       ],connection=client_dynamo)  
-    print DYNAMODB_TABLE_NAME+' selected' 
-'''
 today = time.strftime("%Y-%m-%d")
 t_midnight = "%s 00:00:00" %(today)
 t_midnight = datetime.datetime.strptime(t_midnight, "%Y-%m-%d %H:%M:%S").timetuple()
 t_midnight = time.mktime(t_midnight)
 W_SIZE = 40#default window size for determine noise model
 
-
-res = None
 def put_in_raw_table(timestamp,temp,light,sound):
     table.put_item(
                     Item(table, data={ 'timestamp': str(timestamp),
@@ -176,40 +158,7 @@ def event_function(sublist,norm):
   rlh_bar = float(e_rlh-norm['mean_rlh'])/norm['std_rlh']
   var_bar = float(e_var-norm['mean_var'])/norm['std_var']
   return [rms_bar,rlh_bar,var_bar]
-'''
-+++++++++++++++++++++++++++++
-How to compute state is not putting ecs in a list
-+++++++++++++++++++++++++++++
 
-def label_states(states):
-  try:
-  #states elem: temp, light, sound, time, event_count
-    states[0]
-    states[1]
-    states[2]
-    states[3]
-    D = get_D(0,0,0,0,states[0][4],states[1][4],states[2][4])
-    states[0].append(D)
-    D = get_D(0,0,0,states[0][4],states[1][4],states[2][4],states[3][4])
-    states[1].append(D)
-    D = get_D(0,0,states[0][4],states[1][4],states[2][4],states[3][4],states[4][4])
-    states[2].append(D)
-    D = get_D(0,states[0][4],states[1][4],states[2][4],states[3][4],states[4][4],states[5][4])
-    states[3].append(D)
-
-    L = len(states)
-
-    for i in range(4,L-2):
-      D = get_D(states[i-4][4],states[i-3][4],states[i-2][4],states[i-1][4],states[i][4],states[i+1][4],states[i+2][4])
-      states[i].append(D)
-    D = get_D(states[L-6][4],states[L-5][4],states[L-4][4],states[L-3][4],states[L-2][4],states[L-1][4],0)
-    states[L-2].append(D)
-    D = get_D(states[L-5][4],states[L-4][4],states[L-3][4],states[L-2][4],states[L-1][4],0,0)
-    states[L-1].append(D)
-    return states
-  except IndexError:
-    print "Too short duration to get result!"
-'''
 def get_D(que):
   val=[0,0,0,0,0,0,0]
   for i in range(0,len(que)):
@@ -310,6 +259,7 @@ if __name__ == "__main__":
         current_night = {"temp":temperature2,"light":light,"sound":sound,"time":timestamp,"state":state_value}  
         print "write current data into night.csv."
         dw.writerow(current_night)
+        fou.flush()
 
   except KeyboardInterrupt:
     print "Exceptions!"

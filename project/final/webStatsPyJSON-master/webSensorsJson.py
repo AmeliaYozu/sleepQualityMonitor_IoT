@@ -26,6 +26,7 @@ global time_end
 maxPing = 0
 minPing = 100
 
+global p
 
 def support_jsonp(f):
 	@wraps(f)
@@ -78,16 +79,20 @@ def alc():
 @app.route('/start')
 @support_jsonp
 def start_monitor():
+	#global p
+	#p = subprocess.call(["python","../sensors.py"])
+	#print p
+
+
+	# Now we can wait for the child to complete
 	#global child_pid
 	#os.system("../sensors.py")
 	#global time_start = time.time()
 	newpid = os.fork()
 	if newpid == 0:
-		#child_pid = proc.pid
-		memJson = {"state":"End monitoring..."}
+		memJson = {"state":"Start monitoring..."}
 		subprocess.call(["python","../sensors.py"])
 	else:	
-	#s2_out = subprocess.check_output([sys.executable, "../sensors.py"])
 		memJson = {"state":"Start monitoring..."}
 	resp = jsonify(memJson)
 	resp.status_code = 200
@@ -106,17 +111,19 @@ def predict():
 @app.route('/end')
 @support_jsonp
 def end_monitor():
-	global child_pid
-	global time_end
-	time_end = time.time()
-	if child_pid is None:
-		memJson = {"state":"You haven't started, yet..."}
-	else:
-		os.kill(child_pid,signal.SIGTERM)
-		memJson = {"state":"End monitoring...","duration":time_end-time_start}
+	#global p = 5654
+	#os.kill(p, signal.SIGTERM)
+	#global child_pid
+	#global time_end
+	#time_end = time.time()
+	#if child_pid is None:
+	#	memJson = {"state":"You haven't started, yet..."}
+	#else:
+	#os.kill(child_pid,signal.SIGTERM)
+	memJson = {"state":"End monitoring..."}
 	resp = jsonify(memJson)
 	resp.status_code = 200
 	return resp
 
 if __name__ == '__main__':
-	app.run(debug=True, host="0.0.0.0", port=7000)
+	app.run(debug=True, host="0.0.0.0", port=8800)
